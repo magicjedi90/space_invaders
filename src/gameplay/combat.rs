@@ -18,20 +18,30 @@ pub(crate) fn pick_shooter_column(live_cols: &[usize], rand: u32) -> usize {
 /// The player's trigger discipline for a chaos mode:
 /// `(shots_per_fire, max_live_bullets)`.
 ///
-/// Normal keeps the classic one-bullet-in-flight rule. Insane raises the
-/// cap to 3 to compensate for the faster fleet. Ridiculous mounts twin
-/// cannons and lets 3 volleys stack. Insiculous is ridiculous's twin
-/// cannons under insane's pressure — the twin cap already covers it.
+/// Normal keeps the classic one-bullet-in-flight rule. Insane compensates
+/// for the faster fleet with more single shots on screen. Ridiculous
+/// answers the relentless fire with twin cannons, one volley in flight.
+/// Insiculous faces both fleet buffs, so it gets twin cannons AND stacked
+/// volleys. An explicit match (not the `is_*` predicates — both are true
+/// for Insiculous) so each mode's cap reads directly.
 pub(crate) fn player_fire_caps(mode: ChaosMode) -> (usize, usize) {
-    let shots = if mode.is_ridiculous() { 2 } else { 1 };
-    let max_live = if mode.is_ridiculous() {
-        RIDICULOUS_MAX_PLAYER_BULLETS
-    } else if mode.is_insane() {
-        INSANE_MAX_PLAYER_BULLETS
+    match mode {
+        ChaosMode::Normal => (1, MAX_PLAYER_BULLETS),
+        ChaosMode::Insane => (1, INSANE_MAX_PLAYER_BULLETS),
+        ChaosMode::Ridiculous => (2, RIDICULOUS_MAX_PLAYER_BULLETS),
+        ChaosMode::Insiculous => (2, INSICULOUS_MAX_PLAYER_BULLETS),
+    }
+}
+
+/// Average invader shots per second for a chaos mode: Ridiculous (and
+/// Insiculous) fleets fire relentlessly; Insane's buff is march speed, not
+/// trigger-happiness (see `march_speed`).
+pub(crate) fn invader_fire_rate(mode: ChaosMode) -> f32 {
+    if mode.is_ridiculous() {
+        INVADER_FIRE_RATE * RIDICULOUS_FIRE_MULT
     } else {
-        MAX_PLAYER_BULLETS
-    };
-    (shots, max_live)
+        INVADER_FIRE_RATE
+    }
 }
 
 impl SpaceInvadersGame {
@@ -72,11 +82,7 @@ impl SpaceInvadersGame {
         if self.invaders.is_empty() {
             return;
         }
-        let rate = if self.chaos_mode.is_insane() {
-            INVADER_FIRE_RATE * INSANE_FIRE_MULT
-        } else {
-            INVADER_FIRE_RATE
-        };
+        let rate = invader_fire_rate(self.chaos_mode);
         if hash_f32(self.frame_count) >= rate * ctx.delta_time {
             return;
         }

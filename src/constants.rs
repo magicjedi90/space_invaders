@@ -25,11 +25,15 @@ pub(crate) const BULLET_LIFETIME: f32 = 2.5;
 pub(crate) const FIRE_COOLDOWN: f32 = 0.4;
 /// Live player bullets allowed at once (classic single-shot discipline).
 pub(crate) const MAX_PLAYER_BULLETS: usize = 1;
-/// Insane mode: live-bullet cap — extra shots on screen compensate for the
-/// faster, angrier fleet.
-pub(crate) const INSANE_MAX_PLAYER_BULLETS: usize = 3;
-/// Ridiculous mode: live-bullet cap for the twin cannon (3 volleys of 2).
-pub(crate) const RIDICULOUS_MAX_PLAYER_BULLETS: usize = 6;
+/// Insane mode: live-bullet cap — extra single shots on screen compensate
+/// for the faster-marching fleet.
+pub(crate) const INSANE_MAX_PLAYER_BULLETS: usize = 4;
+/// Ridiculous mode: live-bullet cap for the twin cannon (one volley of 2
+/// in flight — the classic discipline with two barrels).
+pub(crate) const RIDICULOUS_MAX_PLAYER_BULLETS: usize = 2;
+/// Insiculous mode: live-bullet cap for the twin cannon (3 stacked volleys
+/// against both fleet buffs at once).
+pub(crate) const INSICULOUS_MAX_PLAYER_BULLETS: usize = 6;
 /// Ridiculous mode: horizontal offset of each twin-cannon barrel.
 pub(crate) const TWIN_CANNON_OFFSET: f32 = 12.0;
 pub(crate) const INVADER_BULLET_COLOR: Vec4 = Vec4::new(1.0, 0.4, 0.3, 1.0);
@@ -59,8 +63,8 @@ pub(crate) const INVASION_Y: f32 = -215.0;
 
 /// Average invader shots per second across the whole fleet.
 pub(crate) const INVADER_FIRE_RATE: f32 = 0.7;
-/// Insane mode: fire-rate multiplier.
-pub(crate) const INSANE_FIRE_MULT: f32 = 2.4;
+/// Ridiculous mode: fire-rate multiplier (Insane's buff is march speed).
+pub(crate) const RIDICULOUS_FIRE_MULT: f32 = 2.4;
 
 /// Points per kill, by row (0 = top row, scores the most — classic table).
 pub(crate) const INVADER_ROW_VALUES: [u32; INVADER_ROWS] = [30, 20, 20, 10, 10];

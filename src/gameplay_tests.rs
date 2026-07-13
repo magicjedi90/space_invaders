@@ -5,7 +5,8 @@ use engine_core::prelude::*;
 
 use crate::constants::*;
 use crate::gameplay::{
-    march_speed, march_step, pick_shooter_column, player_fire_caps, rects_overlap, MarchOutcome,
+    invader_fire_rate, march_speed, march_step, pick_shooter_column, player_fire_caps,
+    rects_overlap, MarchOutcome,
 };
 use crate::menu::mode_hint;
 use crate::spawning::{invader_home_x, spawn_barriers, spawn_invaders, spawn_player, barrier_block_pos};
@@ -95,26 +96,40 @@ fn rects_overlap_detects_touch_and_separation() {
 fn player_fire_caps_per_chaos_mode() {
     // Normal: the classic single bullet in flight.
     assert_eq!(player_fire_caps(ChaosMode::Normal), (1, MAX_PLAYER_BULLETS));
-    // Insane: still one barrel, but 3 shots on screen to compensate for
-    // the faster fleet.
+    // Insane: one barrel, 4 shots on screen against the faster march.
     assert_eq!(player_fire_caps(ChaosMode::Insane), (1, INSANE_MAX_PLAYER_BULLETS));
-    // Ridiculous: twin cannons, 3 volleys stack.
+    // Ridiculous: twin cannons, one volley in flight.
     assert_eq!(player_fire_caps(ChaosMode::Ridiculous), (2, RIDICULOUS_MAX_PLAYER_BULLETS));
-    // Insiculous = both: the twin-cannon cap already covers insane's boost.
-    assert_eq!(player_fire_caps(ChaosMode::Insiculous), (2, RIDICULOUS_MAX_PLAYER_BULLETS));
-}
-
-#[test]
-fn fire_caps_never_shrink_as_chaos_rises() {
-    let caps: Vec<usize> = ChaosMode::ALL.iter().map(|&m| player_fire_caps(m).1).collect();
-    for pair in caps.windows(2) {
-        assert!(pair[1] >= pair[0], "cap must not shrink across {caps:?}");
-    }
+    // Insiculous faces both fleet buffs: twin cannons AND stacked volleys.
+    assert_eq!(player_fire_caps(ChaosMode::Insiculous), (2, INSICULOUS_MAX_PLAYER_BULLETS));
     // A volley must always fit under its own cap.
     for &mode in &ChaosMode::ALL {
         let (shots, max_live) = player_fire_caps(mode);
         assert!(shots <= max_live, "{mode:?} volley larger than its cap");
     }
+}
+
+/// The split of fleet buffs: Insane owns march speed, Ridiculous owns fire
+/// rate, Insiculous gets both, Normal gets neither.
+#[test]
+fn fleet_buffs_split_across_chaos_modes() {
+    let total = INVADER_ROWS * INVADER_COLS;
+    let base_speed = march_speed(total, total, false);
+    let speed = |m: ChaosMode| march_speed(total, total, m.is_insane());
+
+    assert_eq!(speed(ChaosMode::Normal), base_speed);
+    assert_eq!(invader_fire_rate(ChaosMode::Normal), INVADER_FIRE_RATE);
+
+    assert!(speed(ChaosMode::Insane) > base_speed, "Insane must march faster");
+    assert_eq!(invader_fire_rate(ChaosMode::Insane), INVADER_FIRE_RATE,
+        "Insane must NOT fire faster — that's Ridiculous's buff");
+
+    assert_eq!(speed(ChaosMode::Ridiculous), base_speed,
+        "Ridiculous must NOT march faster — that's Insane's buff");
+    assert!(invader_fire_rate(ChaosMode::Ridiculous) > INVADER_FIRE_RATE);
+
+    assert!(speed(ChaosMode::Insiculous) > base_speed);
+    assert!(invader_fire_rate(ChaosMode::Insiculous) > INVADER_FIRE_RATE);
 }
 
 #[test]
