@@ -77,6 +77,22 @@ pub(crate) const INVADER_ROW_COLORS: [Vec4; INVADER_ROWS] = [
     Vec4::new(0.35, 0.7, 1.0, 1.0),  // blue
 ];
 
+// --- UFO (mystery ship) ---
+pub(crate) const UFO_W: f32 = 44.0;
+pub(crate) const UFO_H: f32 = 16.0;
+pub(crate) const UFO_SCALE: Vec2 = Vec2::new(UFO_W / RENDER_UNIT, UFO_H / RENDER_UNIT);
+/// Flight lane across the top, above the fresh formation.
+pub(crate) const UFO_Y: f32 = 268.0;
+pub(crate) const UFO_SPEED: f32 = 130.0;
+/// Average UFO appearances per second (~one every 15s).
+pub(crate) const UFO_SPAWN_RATE: f32 = 1.0 / 15.0;
+/// Mystery bonus table — a hash draw picks one per UFO (classic values).
+pub(crate) const UFO_BONUS_VALUES: [u32; 4] = [50, 100, 150, 300];
+pub(crate) const UFO_COLOR: Vec4 = Vec4::new(1.0, 0.3, 0.45, 1.0);
+pub(crate) const UFO_EMISSIVE: f32 = 1.8;
+/// Seconds the "UFO +N" HUD flash stays up after a kill.
+pub(crate) const UFO_FLASH_SECS: f32 = 1.5;
+
 // --- Barriers (bunkers) ---
 pub(crate) const BARRIER_COUNT: usize = 4;
 /// Each barrier is a grid of small destructible blocks.

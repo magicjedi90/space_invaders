@@ -120,6 +120,16 @@ impl SpaceInvadersGame {
             ctx.ui.label_centered(&format!("STREAK x{}", self.shot_streak), Vec2::new(cx, 48.0));
         }
 
+        if self.ufo_flash > 0.0 {
+            let c = crate::constants::UFO_COLOR;
+            ctx.ui.label_centered_styled(
+                &format!("UFO +{}", self.ufo_flash_bonus),
+                Vec2::new(cx, 72.0),
+                Color::new(c.x, c.y, c.z, c.w),
+                16.0,
+            );
+        }
+
         if let GameState::GameOver { won } = &self.state {
             let msg = if *won { "INVASION REPELLED!" } else { "EARTH HAS FALLEN" };
             ctx.ui.label_centered(msg, Vec2::new(cx, cy - 60.0));

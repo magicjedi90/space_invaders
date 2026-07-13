@@ -40,6 +40,8 @@ impl SpaceInvadersGame {
         self.formation_offset = Vec2::ZERO;
 
         self.destroy_all_bullets(ctx.world);
+        self.destroy_ufo(ctx.world);
+        self.ufo_flash = 0.0;
         self.destroy_fleet_and_barriers(ctx.world);
         self.invaders = spawning::spawn_invaders(ctx.world, self.tex_id);
         let theme = ChaosTheme::for_mode(self.chaos_mode);
@@ -56,11 +58,13 @@ impl SpaceInvadersGame {
     /// game-over overlay; the next start rebuilds them.
     pub(crate) fn finish_game(&mut self, ctx: &mut GameContext, won: bool) {
         self.destroy_all_bullets(ctx.world);
+        self.destroy_ufo(ctx.world);
         self.state = GameState::GameOver { won };
     }
 
     pub(crate) fn reset_to_title(&mut self, world: &mut World) {
         self.destroy_all_bullets(world);
+        self.destroy_ufo(world);
         self.state = GameState::TitleScreen { selection: 0 };
     }
 

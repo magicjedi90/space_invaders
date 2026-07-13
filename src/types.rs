@@ -24,6 +24,14 @@ pub(crate) struct SpaceInvadersGame {
 
     pub(crate) player: Option<EntityId>,
     pub(crate) invaders: Vec<Invader>,
+    /// The mystery ship crossing the top lane, if one is in flight.
+    pub(crate) ufo: Option<EntityId>,
+    /// UFO flight direction: +1.0 left-to-right, -1.0 right-to-left.
+    pub(crate) ufo_dir: f32,
+    /// Bonus paid by the last UFO kill, shown while `ufo_flash` runs.
+    pub(crate) ufo_flash_bonus: u32,
+    /// Seconds left on the "UFO +N" HUD flash.
+    pub(crate) ufo_flash: f32,
     pub(crate) barrier_blocks: Vec<EntityId>,
     pub(crate) player_bullets: Vec<EntityId>,
     pub(crate) invader_bullets: Vec<EntityId>,
@@ -59,6 +67,10 @@ impl Default for SpaceInvadersGame {
             lifetimes: LifetimeSystem::new(),
             player: None,
             invaders: Vec::new(),
+            ufo: None,
+            ufo_dir: 1.0,
+            ufo_flash_bonus: 0,
+            ufo_flash: 0.0,
             barrier_blocks: Vec::new(),
             player_bullets: Vec::new(),
             invader_bullets: Vec::new(),

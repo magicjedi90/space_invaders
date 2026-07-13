@@ -6,7 +6,7 @@ use engine_core::prelude::*;
 use crate::constants::*;
 use crate::gameplay::{
     invader_fire_rate, march_speed, march_step, pick_shooter_column, player_fire_caps,
-    rects_overlap, MarchOutcome,
+    rects_overlap, ufo_bonus, ufo_entry, ufo_offscreen, MarchOutcome,
 };
 use crate::menu::mode_hint;
 use crate::spawning::{invader_home_x, spawn_barriers, spawn_invaders, spawn_player, barrier_block_pos};
@@ -130,6 +130,73 @@ fn fleet_buffs_split_across_chaos_modes() {
 
     assert!(speed(ChaosMode::Insiculous) > base_speed);
     assert!(invader_fire_rate(ChaosMode::Insiculous) > INVADER_FIRE_RATE);
+}
+
+// --- UFO (mystery ship) ---
+
+#[test]
+fn ufo_enters_offscreen_and_flies_toward_the_far_side() {
+    let (left_x, right_dir) = ufo_entry(0); // even draw
+    assert!(left_x < -WIN_W / 2.0, "even draw enters past the left edge");
+    assert_eq!(right_dir, 1.0);
+
+    let (right_x, left_dir) = ufo_entry(1); // odd draw
+    assert!(right_x > WIN_W / 2.0, "odd draw enters past the right edge");
+    assert_eq!(left_dir, -1.0);
+
+    // An entering ship is never immediately offscreen in its own direction.
+    assert!(!ufo_offscreen(left_x, right_dir));
+    assert!(!ufo_offscreen(right_x, left_dir));
+}
+
+#[test]
+fn ufo_despawns_only_past_the_far_edge() {
+    assert!(!ufo_offscreen(0.0, 1.0), "mid-screen is in flight");
+    assert!(!ufo_offscreen(WIN_W / 2.0 + UFO_W - 1.0, 1.0), "still sliding out");
+    assert!(ufo_offscreen(WIN_W / 2.0 + UFO_W + 1.0, 1.0), "fully out right");
+    assert!(ufo_offscreen(-(WIN_W / 2.0 + UFO_W + 1.0), -1.0), "fully out left");
+    // The entry edge never counts as the far edge.
+    assert!(!ufo_offscreen(-(WIN_W / 2.0 + UFO_W + 1.0), 1.0));
+}
+
+#[test]
+fn ufo_bonus_draws_from_the_classic_table() {
+    for rand in 0..16u32 {
+        assert!(UFO_BONUS_VALUES.contains(&ufo_bonus(rand)));
+    }
+    // Every table entry is reachable.
+    let drawn: std::collections::HashSet<u32> = (0..4).map(ufo_bonus).collect();
+    assert_eq!(drawn.len(), UFO_BONUS_VALUES.len());
+}
+
+#[test]
+fn ufo_lane_is_above_the_fresh_formation() {
+    let ufo_bottom = UFO_Y - UFO_H / 2.0;
+    let formation_top = crate::spawning::invader_home_y(0) + INVADER_H / 2.0;
+    assert!(ufo_bottom > formation_top, "UFO must fly clear of the top invader row");
+}
+
+/// A player bullet must report a started contact against the kinematic
+/// UFO — the exact spawn recipe the game uses.
+#[test]
+fn player_bullet_registers_hit_on_ufo() {
+    let mut game = SpaceInvadersGame::default();
+    let mut world = World::new();
+
+    let ufo = game.spawn_ufo(&mut world, Vec2::new(0.0, UFO_Y));
+    game.spawn_player_bullet(&mut world, Vec2::new(0.0, UFO_Y - 80.0), Vec4::ONE);
+    let bullet = game.player_bullets[0];
+
+    let mut hit = false;
+    for _ in 0..120 {
+        game.physics.update(&mut world, 1.0 / 60.0);
+        let events = game.physics.take_collision_events();
+        if events.iter().any(|c| c.event.started && c.event.involves(bullet, ufo)) {
+            hit = true;
+            break;
+        }
+    }
+    assert!(hit, "player bullet never registered a contact with the UFO");
 }
 
 #[test]

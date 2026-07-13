@@ -249,7 +249,7 @@ impl SpaceInvadersGame {
 
     /// Retire a player bullet and account for the shot: kills extend the
     /// sharpshooter streak, anything else resets it.
-    fn finish_player_shot(&mut self, ctx: &mut GameContext, bullet: EntityId, killed: bool) {
+    pub(super) fn finish_player_shot(&mut self, ctx: &mut GameContext, bullet: EntityId, killed: bool) {
         self.player_bullets.retain(|&b| b != bullet);
         self.physics.destroy_entity(ctx.world, bullet);
         if killed {

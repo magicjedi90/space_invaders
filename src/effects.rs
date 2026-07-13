@@ -35,6 +35,21 @@ pub(crate) fn player_hit_burst(theme: &ChaosTheme, tex: u32) -> ParticleConfig {
         .with_texture(tex)
 }
 
+/// Jackpot shower when the mystery ship goes down.
+pub(crate) fn ufo_death_burst(theme: &ChaosTheme, tex: u32) -> ParticleConfig {
+    let color = crate::constants::UFO_COLOR;
+    let count = (46.0 * theme.particle_count_mult).round() as usize;
+    ParticleConfig::burst(count)
+        .with_lifetime(0.3, 0.8)
+        .with_speed(110.0, 400.0)
+        .with_direction(Vec2::Y, std::f32::consts::PI) // full circle
+        .with_color(color, Vec4::new(color.x, color.y, color.z, 0.0))
+        .with_scale(7.0, 0.5)
+        .with_drag(1.9)
+        .with_emissive(2.6)
+        .with_texture(tex)
+}
+
 /// Small chip of debris when a bullet (or a marching invader) eats a
 /// barrier block.
 pub(crate) fn barrier_chip_burst(color: Vec4, theme: &ChaosTheme, tex: u32) -> ParticleConfig {

@@ -5,11 +5,14 @@
 mod combat;
 mod flow;
 mod formation;
+mod ufo;
 
 #[cfg(test)]
 pub(crate) use combat::{invader_fire_rate, pick_shooter_column, player_fire_caps};
 #[cfg(test)]
 pub(crate) use formation::{march_speed, march_step, MarchOutcome};
+#[cfg(test)]
+pub(crate) use ufo::{ufo_bonus, ufo_entry, ufo_offscreen};
 
 use engine_core::prelude::*;
 use crate::types::*;
@@ -49,8 +52,10 @@ impl SpaceInvadersGame {
         if self.state == GameState::Playing {
             self.update_firing(ctx);
             self.update_invader_fire(ctx);
+            self.update_ufo(ctx);
             self.march_formation(ctx);
             self.resolve_bullet_hits(ctx, &collisions);
+            self.check_ufo_hit(ctx, &collisions);
             self.cancel_crossing_bullets(ctx);
             self.cull_stray_bullets(ctx);
             self.check_invasion(ctx);
@@ -106,6 +111,7 @@ impl SpaceInvadersGame {
     pub(crate) fn update_entity_visibility(&self, ctx: &mut GameContext) {
         let visible = matches!(self.state, GameState::Playing | GameState::GameOver { .. });
         let entities: Vec<EntityId> = self.player.into_iter()
+            .chain(self.ufo)
             .chain(self.invaders.iter().map(|i| i.entity))
             .chain(self.barrier_blocks.iter().copied())
             .chain(self.player_bullets.iter().copied())
