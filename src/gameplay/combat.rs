@@ -15,10 +15,28 @@ pub(crate) fn pick_shooter_column(live_cols: &[usize], rand: u32) -> usize {
     live_cols[rand as usize % live_cols.len()]
 }
 
+/// The player's trigger discipline for a chaos mode:
+/// `(shots_per_fire, max_live_bullets)`.
+///
+/// Normal keeps the classic one-bullet-in-flight rule. Insane raises the
+/// cap to 3 to compensate for the faster fleet. Ridiculous mounts twin
+/// cannons and lets 3 volleys stack. Insiculous is ridiculous's twin
+/// cannons under insane's pressure — the twin cap already covers it.
+pub(crate) fn player_fire_caps(mode: ChaosMode) -> (usize, usize) {
+    let shots = if mode.is_ridiculous() { 2 } else { 1 };
+    let max_live = if mode.is_ridiculous() {
+        RIDICULOUS_MAX_PLAYER_BULLETS
+    } else if mode.is_insane() {
+        INSANE_MAX_PLAYER_BULLETS
+    } else {
+        MAX_PLAYER_BULLETS
+    };
+    (shots, max_live)
+}
+
 impl SpaceInvadersGame {
-    /// Hold-to-fire with a cooldown. Normal mode keeps the classic
-    /// one-bullet-in-flight discipline; Ridiculous mounts twin cannons and
-    /// lets volleys stack.
+    /// Hold-to-fire with a cooldown. The chaos mode sets the trigger
+    /// discipline — see [`player_fire_caps`].
     pub(crate) fn update_firing(&mut self, ctx: &mut GameContext) {
         self.fire_cooldown = (self.fire_cooldown - ctx.delta_time).max(0.0);
 
@@ -28,9 +46,7 @@ impl SpaceInvadersGame {
             return;
         }
 
-        let twin = self.chaos_mode.is_ridiculous();
-        let shots = if twin { 2 } else { 1 };
-        let max_live = if twin { RIDICULOUS_MAX_PLAYER_BULLETS } else { MAX_PLAYER_BULLETS };
+        let (shots, max_live) = player_fire_caps(self.chaos_mode);
         if self.player_bullets.len() + shots > max_live {
             return;
         }
@@ -38,7 +54,7 @@ impl SpaceInvadersGame {
 
         let theme = ChaosTheme::for_mode(self.chaos_mode);
         let muzzle_y = pos.y + PLAYER_H / 2.0 + PLAYER_BULLET_H / 2.0 + 1.0;
-        if twin {
+        if shots == 2 {
             for dx in [-TWIN_CANNON_OFFSET, TWIN_CANNON_OFFSET] {
                 self.spawn_player_bullet(
                     ctx.world, Vec2::new(pos.x + dx, muzzle_y), theme.accent_color);

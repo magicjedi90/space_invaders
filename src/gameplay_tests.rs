@@ -4,7 +4,9 @@
 use engine_core::prelude::*;
 
 use crate::constants::*;
-use crate::gameplay::{march_speed, march_step, pick_shooter_column, rects_overlap, MarchOutcome};
+use crate::gameplay::{
+    march_speed, march_step, pick_shooter_column, player_fire_caps, rects_overlap, MarchOutcome,
+};
 use crate::menu::mode_hint;
 use crate::spawning::{invader_home_x, spawn_barriers, spawn_invaders, spawn_player, barrier_block_pos};
 use crate::types::SpaceInvadersGame;
@@ -87,6 +89,32 @@ fn rects_overlap_detects_touch_and_separation() {
     assert!(rects_overlap(Vec2::ZERO, half, Vec2::new(20.0, 0.0), half), "edge touch counts");
     assert!(!rects_overlap(Vec2::ZERO, half, Vec2::new(21.0, 0.0), half));
     assert!(!rects_overlap(Vec2::ZERO, half, Vec2::new(0.0, 25.0), half));
+}
+
+#[test]
+fn player_fire_caps_per_chaos_mode() {
+    // Normal: the classic single bullet in flight.
+    assert_eq!(player_fire_caps(ChaosMode::Normal), (1, MAX_PLAYER_BULLETS));
+    // Insane: still one barrel, but 3 shots on screen to compensate for
+    // the faster fleet.
+    assert_eq!(player_fire_caps(ChaosMode::Insane), (1, INSANE_MAX_PLAYER_BULLETS));
+    // Ridiculous: twin cannons, 3 volleys stack.
+    assert_eq!(player_fire_caps(ChaosMode::Ridiculous), (2, RIDICULOUS_MAX_PLAYER_BULLETS));
+    // Insiculous = both: the twin-cannon cap already covers insane's boost.
+    assert_eq!(player_fire_caps(ChaosMode::Insiculous), (2, RIDICULOUS_MAX_PLAYER_BULLETS));
+}
+
+#[test]
+fn fire_caps_never_shrink_as_chaos_rises() {
+    let caps: Vec<usize> = ChaosMode::ALL.iter().map(|&m| player_fire_caps(m).1).collect();
+    for pair in caps.windows(2) {
+        assert!(pair[1] >= pair[0], "cap must not shrink across {caps:?}");
+    }
+    // A volley must always fit under its own cap.
+    for &mode in &ChaosMode::ALL {
+        let (shots, max_live) = player_fire_caps(mode);
+        assert!(shots <= max_live, "{mode:?} volley larger than its cap");
+    }
 }
 
 #[test]

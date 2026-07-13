@@ -7,7 +7,7 @@ mod flow;
 mod formation;
 
 #[cfg(test)]
-pub(crate) use combat::pick_shooter_column;
+pub(crate) use combat::{pick_shooter_column, player_fire_caps};
 #[cfg(test)]
 pub(crate) use formation::{march_speed, march_step, MarchOutcome};
 

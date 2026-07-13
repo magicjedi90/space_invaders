@@ -8,7 +8,7 @@ use crate::types::*;
 pub(crate) fn mode_hint(mode: ChaosMode) -> &'static str {
     match mode {
         ChaosMode::Normal => "The classic invasion.",
-        ChaosMode::Insane => "The fleet marches faster and fires relentlessly.",
+        ChaosMode::Insane => "A faster, angrier fleet - but you get 3 shots in the air.",
         ChaosMode::Ridiculous => "Twin cannons - stack volleys of your own.",
         ChaosMode::Insiculous => "A relentless fleet against your twin cannons.",
     }

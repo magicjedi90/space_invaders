@@ -25,7 +25,10 @@ pub(crate) const BULLET_LIFETIME: f32 = 2.5;
 pub(crate) const FIRE_COOLDOWN: f32 = 0.4;
 /// Live player bullets allowed at once (classic single-shot discipline).
 pub(crate) const MAX_PLAYER_BULLETS: usize = 1;
-/// Ridiculous mode: live-bullet cap for the twin cannon.
+/// Insane mode: live-bullet cap — extra shots on screen compensate for the
+/// faster, angrier fleet.
+pub(crate) const INSANE_MAX_PLAYER_BULLETS: usize = 3;
+/// Ridiculous mode: live-bullet cap for the twin cannon (3 volleys of 2).
 pub(crate) const RIDICULOUS_MAX_PLAYER_BULLETS: usize = 6;
 /// Ridiculous mode: horizontal offset of each twin-cannon barrel.
 pub(crate) const TWIN_CANNON_OFFSET: f32 = 12.0;
