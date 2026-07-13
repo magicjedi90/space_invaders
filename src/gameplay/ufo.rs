@@ -84,6 +84,7 @@ impl SpaceInvadersGame {
         self.score += bonus;
         self.ufo_flash_bonus = bonus;
         self.ufo_flash = UFO_FLASH_SECS;
+        ctx.achievements.unlock(crate::achievements::UFO_HUNTER);
 
         if let Some(pos) = entity_position(ctx.world, ufo) {
             let theme = ChaosTheme::for_mode(self.chaos_mode);

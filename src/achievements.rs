@@ -22,6 +22,7 @@ pub(crate) const PERFECT_INSICULOUS: &str = "perfect_insiculous";
 
 pub(crate) const SHARPSHOOTER: &str = "sharpshooter";
 pub(crate) const LAST_STAND:   &str = "last_stand";
+pub(crate) const UFO_HUNTER:   &str = "ufo_hunter";
 
 /// Grouped display order for the achievements page. First tuple element is
 /// the section header, second is the list of ids to render under it.
@@ -31,7 +32,7 @@ pub(crate) const DISPLAY_SECTIONS: &[(&str, &[&str])] = &[
     ("Perfect Defenses",
         &[PERFECT_NORMAL, PERFECT_INSANE, PERFECT_RIDICULOUS, PERFECT_INSICULOUS]),
     ("Skill",
-        &[SHARPSHOOTER, LAST_STAND]),
+        &[SHARPSHOOTER, LAST_STAND, UFO_HUNTER]),
 ];
 
 /// Register every Space Invaders achievement. Call once from `Game::init`.
@@ -68,6 +69,9 @@ pub(crate) fn register_all(mgr: &mut AchievementManager) {
     mgr.register(Achievement::new(LAST_STAND,
         "Last Stand",
         "Repel the invasion on your very last life."));
+    mgr.register(Achievement::new(UFO_HUNTER,
+        "UFO Hunter",
+        "Shoot down a mystery ship."));
 }
 
 impl SpaceInvadersGame {
@@ -80,7 +84,8 @@ impl SpaceInvadersGame {
         if self.lives == 1 {
             ctx.achievements.unlock(LAST_STAND);
         }
-        // SHARPSHOOTER unlocks live in gameplay::combat, not here.
+        // SHARPSHOOTER (gameplay::combat) and UFO_HUNTER (gameplay::ufo)
+        // unlock live, not here.
     }
 }
 
@@ -107,10 +112,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn register_all_adds_ten() {
+    fn register_all_adds_eleven() {
         let mut mgr = AchievementManager::in_memory();
         register_all(&mut mgr);
-        assert_eq!(mgr.total(), 10);
+        assert_eq!(mgr.total(), 11);
     }
 
     #[test]
@@ -156,7 +161,7 @@ mod tests {
         for id in [
             CLEAR_NORMAL, CLEAR_INSANE, CLEAR_RIDICULOUS, CLEAR_INSICULOUS,
             PERFECT_NORMAL, PERFECT_INSANE, PERFECT_RIDICULOUS, PERFECT_INSICULOUS,
-            SHARPSHOOTER, LAST_STAND,
+            SHARPSHOOTER, LAST_STAND, UFO_HUNTER,
         ] {
             assert!(mgr.get(id).is_some(), "{} not registered", id);
         }
