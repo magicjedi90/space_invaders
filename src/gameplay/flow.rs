@@ -10,23 +10,16 @@ use super::players::{cannon_spawn_x, player_color};
 
 impl SpaceInvadersGame {
     /// Actions that change the game state while the simulation screens are up.
-    /// Either player's Menu (Escape/pad Start) or Action1 (Space/Enter/pad A)
-    /// counts, so any controller can pause or restart.
+    /// Play is paused/restarted through the pause gate in `update_gameplay`;
+    /// here only game-over reacts — Action1 (Space/Enter/pad A) restarts and
+    /// Menu (Escape/pad Start) returns to the title.
     pub(crate) fn handle_state_input(&mut self, ctx: &mut GameContext) {
-        match &self.state {
-            GameState::Playing => {
-                if ctx.players.just_activated_any(GameAction::Menu, ctx.input) {
-                    self.reset_to_title(ctx.world);
-                }
+        if let GameState::GameOver { .. } = &self.state {
+            if ctx.players.just_activated_any(GameAction::Action1, ctx.input) {
+                self.start_game(ctx);
+            } else if ctx.players.just_activated_any(GameAction::Menu, ctx.input) {
+                self.reset_to_title(ctx.world);
             }
-            GameState::GameOver { .. } => {
-                if ctx.players.just_activated_any(GameAction::Action1, ctx.input) {
-                    self.start_game(ctx);
-                } else if ctx.players.just_activated_any(GameAction::Menu, ctx.input) {
-                    self.reset_to_title(ctx.world);
-                }
-            }
-            _ => {}
         }
     }
 

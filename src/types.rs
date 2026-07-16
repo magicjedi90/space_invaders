@@ -89,6 +89,8 @@ pub(crate) struct SpaceInvadersGame {
     /// How many cannons are in play (picked from the title menu).
     pub(crate) mode: GameMode,
     pub(crate) state: GameState,
+    /// Pause state + menu, driven from the `Playing` state each frame.
+    pub(crate) pause: PauseMenu,
     pub(crate) chaos_mode: ChaosMode,
     pub(crate) frame_count: u32,
 
@@ -123,6 +125,7 @@ impl Default for SpaceInvadersGame {
             players: vec![PlayerState::fresh()],
             mode: GameMode::SinglePlayer,
             state: GameState::TitleScreen { selection: 0 },
+            pause: PauseMenu::new(),
             chaos_mode: ChaosMode::Normal,
             frame_count: 0,
             march_dir: 1.0,
