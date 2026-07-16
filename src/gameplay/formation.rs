@@ -122,24 +122,34 @@ impl SpaceInvadersGame {
         }
     }
 
-    /// The fleet lands when any invader reaches the invasion line or
-    /// touches the cannon itself — immediate defeat, regardless of lives.
+    /// The fleet lands when any invader reaches the invasion line or touches
+    /// a LIVE cannon — immediate defeat, regardless of remaining lives. A
+    /// despawned cannon (a player out of lives) is not a target.
     pub(crate) fn check_invasion(&mut self, ctx: &mut GameContext) {
         if self.state != GameState::Playing {
             return;
         }
-        let player_pos = self.player.and_then(|p| entity_position(ctx.world, p));
-        let invader_half = Vec2::new(INVADER_W / 2.0, INVADER_H / 2.0);
-        let player_half = Vec2::new(PLAYER_W / 2.0, PLAYER_H / 2.0);
-
-        let landed = self.invaders.iter()
+        let cannons: Vec<Vec2> = self.players.iter()
+            .filter_map(|p| p.entity)
+            .filter_map(|e| entity_position(ctx.world, e))
+            .collect();
+        let invaders: Vec<Vec2> = self.invaders.iter()
             .filter_map(|i| entity_position(ctx.world, i.entity))
-            .any(|pos| {
-                pos.y <= INVASION_Y
-                    || player_pos.is_some_and(|pp| rects_overlap(pos, invader_half, pp, player_half))
-            });
-        if landed {
+            .collect();
+        if fleet_has_landed(&invaders, &cannons) {
             self.finish_game(ctx, false);
         }
     }
+}
+
+/// Has the fleet landed? True when any invader has crossed the invasion line
+/// or overlaps any of the given (live) cannon positions. Dead cannons are
+/// simply absent from `cannons`, so they never register as a touch.
+pub(crate) fn fleet_has_landed(invaders: &[Vec2], cannons: &[Vec2]) -> bool {
+    let invader_half = Vec2::new(INVADER_W / 2.0, INVADER_H / 2.0);
+    let player_half = Vec2::new(PLAYER_W / 2.0, PLAYER_H / 2.0);
+    invaders.iter().any(|&pos| {
+        pos.y <= INVASION_Y
+            || cannons.iter().any(|&pp| rects_overlap(pos, invader_half, pp, player_half))
+    })
 }

@@ -18,7 +18,7 @@ impl SpaceInvadersGame {
 
         ctx.ui.label_centered("INSICULOUS INVADERS", Vec2::new(cx, 150.0));
 
-        let items = ["Play", "Achievements"];
+        let items = ["1 Player", "2 Player Co-op", "Achievements"];
         for (i, item) in items.iter().enumerate() {
             let prefix = if i as u8 == selection { "> " } else { "  " };
             ctx.ui.label_centered(&format!("{prefix}{item}"), Vec2::new(cx, 240.0 + i as f32 * 30.0));
@@ -106,9 +106,7 @@ impl SpaceInvadersGame {
         let cx = ctx.window_size.x / 2.0;
         let cy = ctx.window_size.y / 2.0;
 
-        ctx.ui.label(&format!("SCORE {}", self.score), Vec2::new(40.0, 16.0));
-        let lives_text = format!("LIVES {}", "* ".repeat(self.lives as usize).trim_end());
-        ctx.ui.label(&lives_text, Vec2::new(ctx.window_size.x - 140.0, 16.0));
+        self.draw_scoreboard(ctx);
 
         let theme = ChaosTheme::for_mode(self.chaos_mode);
         if let Some(banner) = theme.banner_text {
@@ -116,8 +114,10 @@ impl SpaceInvadersGame {
             ctx.ui.label_centered_styled(banner, Vec2::new(cx, ctx.window_size.y - 24.0), color, 16.0);
         }
 
-        if self.shot_streak >= 3 {
-            ctx.ui.label_centered(&format!("STREAK x{}", self.shot_streak), Vec2::new(cx, 48.0));
+        // Streak HUD shows the best streak going across the live cannons.
+        let streak = self.players.iter().map(|p| p.shot_streak).max().unwrap_or(0);
+        if streak >= 3 {
+            ctx.ui.label_centered(&format!("STREAK x{streak}"), Vec2::new(cx, 48.0));
         }
 
         if self.ufo_flash > 0.0 {
@@ -133,9 +133,50 @@ impl SpaceInvadersGame {
         if let GameState::GameOver { won } = &self.state {
             let msg = if *won { "INVASION REPELLED!" } else { "EARTH HAS FALLEN" };
             ctx.ui.label_centered(msg, Vec2::new(cx, cy - 60.0));
-            ctx.ui.label_centered(&format!("Final score: {}", self.score), Vec2::new(cx, cy - 34.0));
+            ctx.ui.label_centered(&self.final_score_line(), Vec2::new(cx, cy - 34.0));
             ctx.ui.label_centered("SPACE to play again", Vec2::new(cx, cy - 8.0));
             ctx.ui.label_centered("ESC for title screen", Vec2::new(cx, cy + 18.0));
         }
     }
+
+    /// Score/lives HUD. Single player keeps the classic centered top row;
+    /// co-op splits P1 to the left and P2 to the right.
+    fn draw_scoreboard(&self, ctx: &mut GameContext) {
+        let right_x = ctx.window_size.x - 140.0;
+        match self.mode {
+            GameMode::SinglePlayer => {
+                let p = &self.players[0];
+                ctx.ui.label(&format!("SCORE {}", p.score), Vec2::new(40.0, 16.0));
+                ctx.ui.label(&lives_text(p.lives), Vec2::new(right_x, 16.0));
+            }
+            GameMode::TwoPlayerCoop => {
+                let p1 = &self.players[0];
+                ctx.ui.label(&format!("P1 {}", p1.score), Vec2::new(40.0, 16.0));
+                ctx.ui.label(&lives_text(p1.lives), Vec2::new(40.0, 36.0));
+                if let Some(p2) = self.players.get(1) {
+                    ctx.ui.label(&format!("P2 {}", p2.score), Vec2::new(right_x, 16.0));
+                    ctx.ui.label(&lives_text(p2.lives), Vec2::new(right_x, 36.0));
+                }
+            }
+        }
+    }
+
+    /// Game-over final-score line: one score in single player, both in co-op.
+    fn final_score_line(&self) -> String {
+        match self.mode {
+            GameMode::SinglePlayer => {
+                format!("Final score: {}", self.players[0].score)
+            }
+            GameMode::TwoPlayerCoop => {
+                let p1 = self.players.first().map(|p| p.score).unwrap_or(0);
+                let p2 = self.players.get(1).map(|p| p.score).unwrap_or(0);
+                format!("P1 {p1}   P2 {p2}")
+            }
+        }
+    }
+}
+
+/// "LIVES * * *" from a life count (empty tail once a cannon is out).
+fn lives_text(lives: u32) -> String {
+    format!("LIVES {}", "* ".repeat(lives as usize).trim_end())
 }

@@ -5,12 +5,13 @@ use engine_core::prelude::*;
 use crate::constants::*;
 use crate::types::{Invader, SpaceInvadersGame};
 
-/// Spawn the player cannon near the bottom of the playfield. Kinematic so
-/// gameplay drives it with `set_kinematic_target` (paddle precedent).
-pub(crate) fn spawn_player(world: &mut World, tex: u32, color: Vec4) -> EntityId {
+/// Spawn a player cannon near the bottom of the playfield at horizontal
+/// position `x`. Kinematic so gameplay drives it with `set_kinematic_target`
+/// (paddle precedent).
+pub(crate) fn spawn_player(world: &mut World, tex: u32, color: Vec4, x: f32) -> EntityId {
     world.spawn()
         .with(Name::new("Player"))
-        .with(Transform2D::from_parts(Vec2::new(0.0, PLAYER_Y), 0.0, PLAYER_SCALE))
+        .with(Transform2D::from_parts(Vec2::new(x, PLAYER_Y), 0.0, PLAYER_SCALE))
         // The cannon glows strongly — the signature neon treatment for
         // player-controlled objects.
         .with(Sprite::new(tex).with_color(color).with_emissive(PLAYER_EMISSIVE))
@@ -121,7 +122,13 @@ impl SpaceInvadersGame {
         entity
     }
 
-    pub(crate) fn spawn_player_bullet(&mut self, world: &mut World, pos: Vec2, color: Vec4) {
+    pub(crate) fn spawn_player_bullet(
+        &mut self,
+        world: &mut World,
+        player_index: usize,
+        pos: Vec2,
+        color: Vec4,
+    ) {
         let bullet = self.spawn_bullet(
             world,
             "Player Bullet",
@@ -130,7 +137,7 @@ impl SpaceInvadersGame {
             Vec2::new(0.0, PLAYER_BULLET_SPEED),
             color,
         );
-        self.player_bullets.push(bullet);
+        self.players[player_index].bullets.push(bullet);
     }
 
     pub(crate) fn spawn_invader_bullet(&mut self, world: &mut World, pos: Vec2) {

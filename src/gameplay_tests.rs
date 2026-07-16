@@ -5,8 +5,9 @@ use engine_core::prelude::*;
 
 use crate::constants::*;
 use crate::gameplay::{
-    invader_fire_rate, march_speed, march_step, pick_shooter_column, player_fire_caps,
-    rects_overlap, ufo_bonus, ufo_entry, ufo_offscreen, MarchOutcome,
+    cannon_spawn_x, coop_defeated, fleet_has_landed, invader_fire_rate, march_speed, march_step,
+    pick_shooter_column, player_fire_caps, rects_overlap, ufo_bonus, ufo_entry, ufo_offscreen,
+    volley_fits, MarchOutcome,
 };
 use crate::menu::mode_hint;
 use crate::spawning::{invader_home_x, spawn_barriers, spawn_invaders, spawn_player, barrier_block_pos};
@@ -132,6 +133,74 @@ fn fleet_buffs_split_across_chaos_modes() {
     assert!(invader_fire_rate(ChaosMode::Insiculous) > INVADER_FIRE_RATE);
 }
 
+// --- Co-op (two cannons) ---
+
+#[test]
+fn two_player_cannons_spawn_apart_and_inside_bounds() {
+    // Single player parks the lone cannon at center.
+    assert_eq!(cannon_spawn_x(1, 0), 0.0);
+
+    // Co-op splits the two cannons to opposite sides...
+    let left = cannon_spawn_x(2, 0);
+    let right = cannon_spawn_x(2, 1);
+    assert!(left < 0.0 && right > 0.0, "the two cannons must start on opposite sides");
+    assert!((left + right).abs() < f32::EPSILON, "the split must be symmetric about center");
+
+    // ...and both must spawn where the movement clamp can hold them.
+    assert!(left.abs() < PLAYER_MAX_X, "left cannon must spawn inside the clamp bounds");
+    assert!(right.abs() < PLAYER_MAX_X, "right cannon must spawn inside the clamp bounds");
+}
+
+#[test]
+fn coop_ends_only_when_every_player_is_out() {
+    // Single player: out the moment the lone cannon is empty.
+    assert!(!coop_defeated(&[3]));
+    assert!(coop_defeated(&[0]));
+
+    // Co-op: one live cannon keeps the match going; both empty ends it.
+    assert!(!coop_defeated(&[0, 2]));
+    assert!(!coop_defeated(&[1, 0]));
+    assert!(coop_defeated(&[0, 0]));
+
+    // No roster is not a defeat.
+    assert!(!coop_defeated(&[]));
+}
+
+#[test]
+fn per_player_bullet_caps_are_independent() {
+    // Each cannon checks a fresh volley against ITS OWN bullets in flight, so
+    // one player firing at cap never blocks the other.
+    let (shots, max_live) = player_fire_caps(ChaosMode::Ridiculous); // (2, 2)
+
+    // Player 0 already at cap can't fire; player 1 (empty) still can.
+    assert!(!volley_fits(max_live, shots, max_live), "a maxed cannon cannot fire");
+    assert!(volley_fits(0, shots, max_live), "the other cannon fires independently");
+
+    // A partial load that still leaves room for the whole volley fits.
+    let (n_shots, n_max) = player_fire_caps(ChaosMode::Insane); // (1, 4)
+    assert!(volley_fits(3, n_shots, n_max));
+    assert!(!volley_fits(4, n_shots, n_max));
+}
+
+#[test]
+fn dead_cannon_stops_being_an_invasion_target() {
+    // Place both the invader and a cannon well ABOVE the invasion line, so the
+    // only thing that can register a landing here is the invader touching a
+    // cannon (the line condition is out of the picture).
+    let above_line = 0.0;
+    assert!(above_line > INVASION_Y, "test fixture must sit above the invasion line");
+    let cannon = Vec2::new(100.0, above_line);
+    let invader = Vec2::new(100.0, above_line); // sitting right on the cannon
+
+    // Live cannon present → the touch lands the fleet.
+    assert!(fleet_has_landed(&[invader], &[cannon]), "touching a live cannon lands the fleet");
+    // Cannon dead (absent from the live list) → the same invader is no target.
+    assert!(!fleet_has_landed(&[invader], &[]), "a despawned cannon is not a target");
+
+    // The invasion line still ends the game regardless of cannons.
+    assert!(fleet_has_landed(&[Vec2::new(0.0, INVASION_Y)], &[]));
+}
+
 // --- UFO (mystery ship) ---
 
 #[test]
@@ -184,8 +253,8 @@ fn player_bullet_registers_hit_on_ufo() {
     let mut world = World::new();
 
     let ufo = game.spawn_ufo(&mut world, Vec2::new(0.0, UFO_Y));
-    game.spawn_player_bullet(&mut world, Vec2::new(0.0, UFO_Y - 80.0), Vec4::ONE);
-    let bullet = game.player_bullets[0];
+    game.spawn_player_bullet(&mut world, 0, Vec2::new(0.0, UFO_Y - 80.0), Vec4::ONE);
+    let bullet = game.players[0].bullets[0];
 
     let mut hit = false;
     for _ in 0..120 {
@@ -220,8 +289,8 @@ fn player_bullet_registers_hit_on_kinematic_invader() {
     let target = &invaders[0];
     let x = invader_home_x(target.col);
 
-    game.spawn_player_bullet(&mut world, Vec2::new(x, FORMATION_TOP_Y - 80.0), Vec4::ONE);
-    let bullet = game.player_bullets[0];
+    game.spawn_player_bullet(&mut world, 0, Vec2::new(x, FORMATION_TOP_Y - 80.0), Vec4::ONE);
+    let bullet = game.players[0].bullets[0];
 
     let mut hit = false;
     for _ in 0..120 {
@@ -242,7 +311,7 @@ fn invader_bullet_registers_hit_on_player() {
     let mut game = SpaceInvadersGame::default();
     let mut world = World::new();
 
-    let player = spawn_player(&mut world, 0, Vec4::ONE);
+    let player = spawn_player(&mut world, 0, Vec4::ONE, 0.0);
     game.spawn_invader_bullet(&mut world, Vec2::new(0.0, PLAYER_Y + 100.0));
     let bullet = game.invader_bullets[0];
 
@@ -269,8 +338,8 @@ fn player_bullet_registers_hit_on_barrier_block() {
     // Aim straight up under the first block of the first bunker.
     let block_pos = barrier_block_pos(BARRIER_XS[0], BARRIER_BLOCK_ROWS - 1, 0);
     game.spawn_player_bullet(
-        &mut world, Vec2::new(block_pos.x, block_pos.y - 60.0), Vec4::ONE);
-    let bullet = game.player_bullets[0];
+        &mut world, 0, Vec2::new(block_pos.x, block_pos.y - 60.0), Vec4::ONE);
+    let bullet = game.players[0].bullets[0];
 
     let mut hit_block = None;
     for _ in 0..120 {
@@ -292,8 +361,8 @@ fn stray_bullet_expires_via_lifetime_system() {
     let mut game = SpaceInvadersGame::default();
     let mut world = World::new();
 
-    game.spawn_player_bullet(&mut world, Vec2::ZERO, Vec4::ONE);
-    let bullet = game.player_bullets[0];
+    game.spawn_player_bullet(&mut world, 0, Vec2::ZERO, Vec4::ONE);
+    let bullet = game.players[0].bullets[0];
     assert!(world.get::<Lifetime>(bullet).is_some(), "bullets must carry a Lifetime");
 
     let frames = (BULLET_LIFETIME * 60.0) as usize + 10;

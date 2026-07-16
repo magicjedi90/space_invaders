@@ -75,13 +75,16 @@ pub(crate) fn register_all(mgr: &mut AchievementManager) {
 }
 
 impl SpaceInvadersGame {
-    /// Called from the win path when the last invader falls.
+    /// Called from the win path when the last invader falls. Perfect means
+    /// no cannon lost a single life; last stand means some cannon repelled
+    /// the fleet on its very last life. In single player both reduce to the
+    /// lone cannon's tally.
     pub(crate) fn unlock_win_achievements(&self, ctx: &mut GameContext) {
         ctx.achievements.unlock(chaos_clear_id(self.chaos_mode));
-        if self.lives == STARTING_LIVES {
+        if self.players.iter().all(|p| p.lives == STARTING_LIVES) {
             ctx.achievements.unlock(chaos_perfect_id(self.chaos_mode));
         }
-        if self.lives == 1 {
+        if self.players.iter().any(|p| p.lives == 1) {
             ctx.achievements.unlock(LAST_STAND);
         }
         // SHARPSHOOTER (gameplay::combat) and UFO_HUNTER (gameplay::ufo)

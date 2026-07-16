@@ -5,12 +5,15 @@
 mod combat;
 mod flow;
 mod formation;
+mod players;
 mod ufo;
 
 #[cfg(test)]
 pub(crate) use combat::{invader_fire_rate, pick_shooter_column, player_fire_caps};
 #[cfg(test)]
-pub(crate) use formation::{march_speed, march_step, MarchOutcome};
+pub(crate) use formation::{fleet_has_landed, march_speed, march_step, MarchOutcome};
+#[cfg(test)]
+pub(crate) use players::{cannon_spawn_x, coop_defeated, volley_fits};
 #[cfg(test)]
 pub(crate) use ufo::{ufo_bonus, ufo_entry, ufo_offscreen};
 
@@ -38,7 +41,7 @@ impl SpaceInvadersGame {
             self.debug_colliders = !self.debug_colliders;
         }
 
-        self.update_player_movement(ctx);
+        self.update_cannons(ctx);
         self.physics.update(ctx.world, ctx.delta_time);
         // Expired bullets despawn here; the physics system garbage-collects
         // their rapier bodies on its next update.
@@ -69,37 +72,6 @@ impl SpaceInvadersGame {
         );
     }
 
-    /// Move the cannon from keyboard or mouse. Mouse takes over whenever it
-    /// moves; keys take over whenever they're pressed.
-    fn update_player_movement(&mut self, ctx: &GameContext) {
-        let Some(player) = self.player else { return };
-        let x = entity_position(ctx.world, player).map(|p| p.x).unwrap_or(0.0);
-
-        let left = ctx.input.is_key_pressed(KeyCode::ArrowLeft)
-            || ctx.input.is_key_pressed(KeyCode::KeyA);
-        let right = ctx.input.is_key_pressed(KeyCode::ArrowRight)
-            || ctx.input.is_key_pressed(KeyCode::KeyD);
-        let key_dx = match (left, right) {
-            (true, false) => -crate::constants::PLAYER_SPEED,
-            (false, true) => crate::constants::PLAYER_SPEED,
-            _ => 0.0,
-        };
-
-        let mouse_moved = ctx.input.mouse_movement_delta().0.abs() > 0.0;
-        let new_x = if key_dx != 0.0 {
-            x + key_dx * ctx.delta_time
-        } else if mouse_moved {
-            // Window pixels (origin top-left) → world (origin center).
-            ctx.input.mouse_position().x - ctx.window_size.x / 2.0
-        } else {
-            x
-        };
-
-        let new_x = new_x.clamp(-crate::constants::PLAYER_MAX_X, crate::constants::PLAYER_MAX_X);
-        self.physics.set_kinematic_target(
-            player, Vec2::new(new_x, crate::constants::PLAYER_Y), 0.0);
-    }
-
     /// Push a radial shockwave into the deforming grid.
     pub(crate) fn ripple_grid(&mut self, position: Vec2, strength: f32, radius: f32) {
         if let Some(grid) = self.grid.as_mut() {
@@ -110,11 +82,11 @@ impl SpaceInvadersGame {
     /// Gameplay sprites only exist on screen outside the menu screens.
     pub(crate) fn update_entity_visibility(&self, ctx: &mut GameContext) {
         let visible = matches!(self.state, GameState::Playing | GameState::GameOver { .. });
-        let entities: Vec<EntityId> = self.player.into_iter()
+        let entities: Vec<EntityId> = self.players.iter().filter_map(|p| p.entity)
             .chain(self.ufo)
             .chain(self.invaders.iter().map(|i| i.entity))
             .chain(self.barrier_blocks.iter().copied())
-            .chain(self.player_bullets.iter().copied())
+            .chain(self.players.iter().flat_map(|p| p.bullets.iter().copied()))
             .chain(self.invader_bullets.iter().copied())
             .collect();
         set_sprites_visible(ctx.world, entities, visible);

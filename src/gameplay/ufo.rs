@@ -75,13 +75,22 @@ impl SpaceInvadersGame {
     /// HUD flash, big burst — and it counts as a kill shot for the streak.
     pub(crate) fn check_ufo_hit(&mut self, ctx: &mut GameContext, collisions: &[CollisionData]) {
         let Some(ufo) = self.ufo else { return };
-        let hit = self.player_bullets.iter().copied().find(|&bullet| {
-            collisions.iter().any(|c| c.event.started && c.event.involves(bullet, ufo))
+        // Any cannon's bullet can claim the mystery ship; the bonus and streak
+        // go to that cannon's owner.
+        let hit = (0..self.players.len()).find_map(|index| {
+            self.players[index]
+                .bullets
+                .iter()
+                .copied()
+                .find(|&bullet| {
+                    collisions.iter().any(|c| c.event.started && c.event.involves(bullet, ufo))
+                })
+                .map(|bullet| (index, bullet))
         });
-        let Some(bullet) = hit else { return };
+        let Some((index, bullet)) = hit else { return };
 
         let bonus = ufo_bonus(hash_u32(self.frame_count.wrapping_add(BONUS_SALT)));
-        self.score += bonus;
+        self.players[index].score += bonus;
         self.ufo_flash_bonus = bonus;
         self.ufo_flash = UFO_FLASH_SECS;
         ctx.achievements.unlock(crate::achievements::UFO_HUNTER);
@@ -93,7 +102,7 @@ impl SpaceInvadersGame {
             self.ripple_grid(pos, GRID_IMPULSE_KILL_STRENGTH, GRID_IMPULSE_KILL_RADIUS);
         }
         self.destroy_ufo(ctx.world);
-        self.finish_player_shot(ctx, bullet, true);
+        self.finish_player_shot(ctx, index, bullet, true);
     }
 
     pub(crate) fn destroy_ufo(&mut self, world: &mut World) {

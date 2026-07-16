@@ -10,6 +10,12 @@ pub(crate) const PLAYER_SCALE: Vec2 = Vec2::new(PLAYER_W / RENDER_UNIT, PLAYER_H
 pub(crate) const PLAYER_Y: f32 = -250.0;
 pub(crate) const PLAYER_SPEED: f32 = 420.0;
 pub(crate) const PLAYER_MAX_X: f32 = WIN_W / 2.0 - 20.0 - PLAYER_W / 2.0;
+/// Co-op: each cannon starts this far to either side of center (∓). Must
+/// sit inside `PLAYER_MAX_X` so both spawn in-bounds.
+pub(crate) const CANNON_COOP_OFFSET: f32 = 120.0;
+/// Tint for player 2's cannon and its bullets (player 1 uses the chaos
+/// theme's accent color, so the two cannons always read apart).
+pub(crate) const PLAYER2_COLOR: Vec4 = Vec4::new(1.0, 0.75, 0.2, 1.0);
 
 // --- Bullets ---
 pub(crate) const PLAYER_BULLET_W: f32 = 5.0;

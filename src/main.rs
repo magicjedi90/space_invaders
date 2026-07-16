@@ -11,7 +11,6 @@ mod types;
 
 use engine_core::prelude::*;
 use constants::*;
-use spawning::*;
 use types::*;
 
 impl Game for SpaceInvadersGame {
@@ -29,10 +28,10 @@ impl Game for SpaceInvadersGame {
         let theme = ChaosTheme::for_mode(self.chaos_mode);
         self.background = Some(spawn_background(
             ctx.world, tex.id, theme.bg_color, Vec2::new(WIN_W, WIN_H)));
-        self.player = Some(spawn_player(ctx.world, tex.id, theme.accent_color));
 
-        // The fleet and barriers spawn fresh on every `start_game()`. Build
-        // the deforming grid backdrop now so it exists before the first match.
+        // The cannons, fleet, and barriers all spawn fresh in `start_game()`
+        // once the title menu picks a mode. Build the deforming grid backdrop
+        // now so it exists before the first match.
         self.grid = Some(default_playfield_grid(&theme));
     }
 
@@ -60,7 +59,8 @@ fn main() {
         .with_clear_color(0.0, 0.0, 0.0, 1.0)
         .with_fps(60)
         .with_asset_base_path(root.join("assets").to_string_lossy())
-        .with_achievement_save_path(root.join("saves/space_invaders_achievements.json").to_string_lossy());
+        .with_achievement_save_path(root.join("saves/space_invaders_achievements.json").to_string_lossy())
+        .with_input_settings_path(root.join("saves/input_settings.json").to_string_lossy());
 
     // With `--features editor` the game runs inside the scene editor
     // (hierarchy, inspector, gizmos, play/pause/stop, collider overlay);
